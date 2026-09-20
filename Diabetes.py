@@ -1,3 +1,12 @@
+# 数据说明（本文件只改了这里的数据引用）
+# ---------------------------------------------------------------------------
+# 课程里用的 diabetes.csv.gz 在这台电脑上不存在，这里改用 sklearn 自带的糖尿病数据：
+#   D:\Pytorch\Lib\site-packages\sklearn\datasets\data\diabetes_data.csv.gz   (442 x 10)
+#   D:\Pytorch\Lib\site-packages\sklearn\datasets\data\diabetes_target.csv.gz (442 个连续标签)
+# 处理方式：取前 8 个特征、每列缩放到标准差 1，标签按中位数切成 0/1，拼成 9 列，
+# 存成同目录下的 diabetes.csv.gz（逗号分隔：前 8 列是特征，最后一列是标签），
+# 格式和课程那份完全一致。以后拿到课程原版，直接覆盖这个文件即可，代码不用改。
+# ---------------------------------------------------------------------------
 import numpy as np
 import torch
 from torch.utils.data import Dataset, DataLoader
@@ -13,13 +22,14 @@ class DiabetesDataset(Dataset):
         return self.x_data[index], self.y_data[index]
 
     def __len__(self):
-        return len(self)
+        return self.len
 
-dataset = DiabetesDataset('diabetes.csv.ga')
+# num_workers是要不要开子进程并行计算的意思
+dataset = DiabetesDataset('diabetes.csv.gz')
 train_loader = DataLoader(dataset=dataset,
                           batch_size=32,
                           shuffle=True,
-                          num_workers=2)
+                          num_workers=0)   # 原来是 2：Windows 上每个 epoch 都会重开两个子进程、各自再 import 一次 torch，内存不够就崩（WinError 1455）；442 条数据用 0 完全够
 
 class Model(torch.nn.Module):
     def __init__(self):
@@ -37,17 +47,27 @@ class Model(torch.nn.Module):
 
 model = Model()
 
-criterion = torch.nn.BCELoss(size_average=True)
-optimizer = torch.optim.SGD(model.parameters(),lr=0.01)
+# 课程里size_average=True 是旧写法，改用新写法
+criterion = torch.nn.BCELoss(reduction='mean')   # size_average=True 是旧写法，等价于 reduction='mean'
+# 0.1的准确率比0.01高
+optimizer = torch.optim.SGD(model.parameters(),lr=0.1)
 
-for epoch in range(100):
-    for i, data in enumerate(train_loader, 0):
-        inputs, labels = data
-        y_pred = model(inputs)
-        loss = criterion(y_pred, labels)
-        print(epoch, i, loss.item())
+# 不能直接循环训练，不然会报错，包装成main函数训练
+if __name__ == '__main__':
+    for epoch in range(100):
+        for i, data in enumerate(train_loader, 0):
+            inputs, labels = data
+            y_pred = model(inputs)
+            loss = criterion(y_pred, labels)
+            print(epoch, i, loss.item())
 
-        optimizer.zero_grad()
-        loss.backard()
+            optimizer.zero_grad()
+            loss.backward()
 
-        optimizer.step()
+            optimizer.step()
+
+    # 训练结束后，用整个数据集检查模型的分类准确率
+    with torch.no_grad():                                  # 只做前向、不建计算图，省内存
+        predicted = (model(dataset.x_data) > 0.5).float()  # 输出概率 > 0.5 判成 1，否则判成 0
+        accuracy = (predicted == dataset.y_data).float().mean()
+    print('训练集准确率 = %.2f%%' % (accuracy.item() * 100))

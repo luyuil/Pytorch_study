@@ -10,6 +10,7 @@
 import numpy as np
 import torch
 from torch.utils.data import Dataset, DataLoader
+from pathlib import Path
 
 class DiabetesDataset(Dataset):
     def __init__(self,filepath):
@@ -25,7 +26,10 @@ class DiabetesDataset(Dataset):
         return self.len
 
 # num_workers是要不要开子进程并行计算的意思
-dataset = DiabetesDataset('diabetes.csv.gz')
+# 数据文件 diabetes.csv.gz 就放在本脚本同一个文件夹里；用 __file__ 定位，
+# 这样不管 PyCharm 的运行工作目录设成什么、从哪个目录启动，都能找到它
+DATA_PATH = Path(__file__).with_name('diabetes.csv.gz')
+dataset = DiabetesDataset(DATA_PATH)
 train_loader = DataLoader(dataset=dataset,
                           batch_size=32,
                           shuffle=True,

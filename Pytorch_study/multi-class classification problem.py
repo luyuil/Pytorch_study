@@ -6,6 +6,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 
 batch_size = 64
+# 处理图片，先转化成张量，在进行标准化
 transform = transforms.Compose([
     transforms.ToTensor(),
     transforms.Normalize((0.1307, ),(0.3081, ))
@@ -49,6 +50,7 @@ class Net(torch.nn.Module):
 model = Net()
 
 criterion = torch.nn.CrossEntropyLoss()
+# momentum（动量）是给梯度下降加一个“惯性”，让参数更新不只听当前这一步梯度的，还带上历史梯度的记忆。
 optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.5)
 
 def train(epoch):

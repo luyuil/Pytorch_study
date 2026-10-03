@@ -14,7 +14,7 @@ idx2char = ['e','h','l','o']
 x_data = [[1, 0, 2, 2, 3]]
 y_data = [3, 1, 2, 3, 2]
 
-inputs = torch.LongTensor(x_data) 
+inputs = torch.LongTensor(x_data)
 labels = torch.LongTensor(y_data)
 
 class Model(torch.nn.Module):
@@ -50,5 +50,3 @@ for epoch in range(15):
     idx = idx.data.numpy()
     print('Predicted:', ''.join([idx2char[x] for x in idx]), end='')
     print(', Epoch [%d/15] loss = %.3f' % (epoch + 1, loss.item()))
-
-
